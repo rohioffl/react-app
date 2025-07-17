@@ -60,19 +60,24 @@ Two endpoints are provided once the server is running:
 - `POST /scan/aws` – trigger an AWS scan
 - `POST /scan/gcp` – trigger a GCP scan
 
+Both endpoints accept optional `checks` or `group` parameters which are passed
+to Prowler as `-c` or `-g` flags. This lets you run a subset of checks for
+faster scans.
+
 ### Example: AWS scan
 
 ```bash
 curl -X POST http://localhost:8000/scan/aws \
      -H 'Content-Type: application/json' \
-     -d '{"accessKey":"AKIA...","secretKey":"abc123","region":"us-west-2"}'
+     -d '{"accessKey":"AKIA...","secretKey":"abc123","region":"us-west-2","checks":"check1,check2"}'
 ```
 
 ### Example: GCP scan
 
 ```bash
 curl -X POST http://localhost:8000/scan/gcp \
-     -F keyFile=@/path/to/service-account.json
+     -F keyFile=@/path/to/service-account.json \
+     -F checks=check1
 ```
 
 A successful response returns the scan ID and the number of findings. You can then query MongoDB for the stored scan results.

@@ -15,10 +15,12 @@ class ScanAWS(APIView):
         access_key = os.getenv("AWS_ACCESS_KEY_ID") or request.data.get("accessKey")
         secret_key = os.getenv("AWS_SECRET_ACCESS_KEY") or request.data.get("secretKey")
         region = request.data.get("region", "all")
+        checks = request.data.get("checks")
+        group = request.data.get("group")
         if not access_key or not secret_key:
             return Response({"error": "Missing AWS credentials"}, status=400)
         try:
-            json_path = run_prowler_aws(access_key, secret_key, region)
+            json_path = run_prowler_aws(access_key, secret_key, region, checks=checks, group=group)
             with open(json_path) as f:
                 findings = json.load(f)
             scan = AWSScan(
@@ -38,6 +40,8 @@ import tempfile
 class ScanGCP(APIView):
     def post(self, request):
         gcp_key_path = os.getenv("GCP_SERVICE_ACCOUNT_JSON_PATH")
+        checks = request.data.get("checks")
+        group = request.data.get("group")
         if not gcp_key_path:
             file = request.FILES.get("keyFile")
             if not file:
@@ -48,7 +52,7 @@ class ScanGCP(APIView):
                 gcp_key_path = temp_key.name
 
         try:
-            csv_path = run_prowler_gcp(gcp_key_path)
+            csv_path = run_prowler_gcp(gcp_key_path, checks=checks, group=group)
             findings = []
             with open(csv_path, newline='') as csvfile:
                 reader = csv.DictReader(csvfile, delimiter=';')

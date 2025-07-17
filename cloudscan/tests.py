@@ -17,7 +17,9 @@ class ScanViewTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         # Use an in-memory MongoDB via mongomock
-        connect("testdb", host="mongomock://localhost")
+        import mongomock
+        connect("testdb", host="mongodb://localhost", mongo_client_class=mongomock.MongoClient)
+        os.environ.setdefault("DJANGO_SECRET_KEY", "testing-secret")
 
     @classmethod
     def tearDownClass(cls):
@@ -72,3 +74,45 @@ class ScanViewTests(TestCase):
         self.assertEqual(GCPScan.objects.count(), 1)
         scan = GCPScan.objects.first()
         self.assertEqual(scan.accountId, "gcp123")
+
+    def test_scan_aws_with_checks_and_group(self):
+        """POST /scan/aws should pass checks and group to the runner."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp_json:
+            json.dump([{"AwsAccountId": "123"}], tmp_json)
+            json_path = tmp_json.name
+
+        with patch("cloudscan.views.run_prowler_aws", return_value=json_path) as mock_run:
+            resp = self.client.post(
+                "/scan/aws",
+                {
+                    "accessKey": "AKIA...",
+                    "secretKey": "secret",
+                    "checks": "check1",
+                    "group": "group1",
+                },
+            )
+
+        os.remove(json_path)
+
+        self.assertEqual(resp.status_code, 200)
+        mock_run.assert_called_with("AKIA...", "secret", "all", checks="check1", group="group1")
+
+    def test_scan_gcp_with_checks_and_group(self):
+        """POST /scan/gcp should pass checks and group to the runner."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as tmp_csv:
+            writer = csv.DictWriter(tmp_csv, fieldnames=["ACCOUNT_UID", "REGION"], delimiter=";")
+            writer.writeheader()
+            writer.writerow({"ACCOUNT_UID": "id", "REGION": "region"})
+            csv_path = tmp_csv.name
+
+        with patch("cloudscan.views.run_prowler_gcp", return_value=csv_path) as mock_run:
+            with patch.dict(os.environ, {"GCP_SERVICE_ACCOUNT_JSON_PATH": "/tmp/key.json"}):
+                resp = self.client.post(
+                    "/scan/gcp",
+                    {"checks": "check2", "group": "group2"},
+                )
+
+        os.remove(csv_path)
+
+        self.assertEqual(resp.status_code, 200)
+        mock_run.assert_called_with("/tmp/key.json", checks="check2", group="group2")
