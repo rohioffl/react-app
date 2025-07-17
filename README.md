@@ -61,12 +61,13 @@ Two endpoints are provided once the server is running:
 - `POST /scan/aws` – trigger an AWS scan
 - `POST /scan/gcp` – trigger a GCP scan
 
-Both endpoints accept optional `checks` or `group` parameters which are passed
-to Prowler as `-c` or `-g` flags. This lets you run a subset of checks for
-faster scans. The GCP endpoint also supports an optional `projectId` parameter
-that is forwarded to Prowler as `--project-ids` to scan a specific project. You
-can also set the `GCP_PROJECT_ID` environment variable instead of passing it in
-the request.
+Both endpoints accept an optional `checks` parameter which is passed to Prowler
+with `-c` to run only the specified checks. The `group` flag (`-g`) is only
+supported for GCP scans&mdash;Prowler v3+ does not allow groups when scanning
+AWS. The GCP endpoint also supports an optional `projectId` parameter that is
+forwarded to Prowler as `--project-ids` to scan a specific project. You can also
+set the `GCP_PROJECT_ID` environment variable instead of passing it in the
+request.
 
 ### Example: AWS scan
 
