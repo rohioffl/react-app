@@ -40,6 +40,7 @@ import tempfile
 class ScanGCP(APIView):
     def post(self, request):
         gcp_key_path = os.getenv("GCP_SERVICE_ACCOUNT_JSON_PATH")
+        project_id = os.getenv("GCP_PROJECT_ID") or request.data.get("projectId")
         checks = request.data.get("checks")
         group = request.data.get("group")
         if not gcp_key_path:
@@ -52,7 +53,9 @@ class ScanGCP(APIView):
                 gcp_key_path = temp_key.name
 
         try:
-            csv_path = run_prowler_gcp(gcp_key_path, checks=checks, group=group)
+            csv_path = run_prowler_gcp(
+                gcp_key_path, checks=checks, group=group, project_id=project_id
+            )
             findings = []
             with open(csv_path, newline='') as csvfile:
                 reader = csv.DictReader(csvfile, delimiter=';')
@@ -62,6 +65,7 @@ class ScanGCP(APIView):
                 date=datetime.now(),
                 provider="GCP",
                 accountId=findings[0].get("ACCOUNT_UID", "unknown"),
+                projectId=findings[0].get("PROJECT_ID", project_id or "unknown"),
                 region=findings[0].get("REGION", "global"),
                 findings=findings
             )
