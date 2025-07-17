@@ -78,6 +78,59 @@ class ScanGCP(APIView):
                 os.remove(gcp_key_path)
         
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
+def scan_gcp(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Only POST allowed"}, status=405)
+
+    gcp_key_path = os.getenv("GCP_SERVICE_ACCOUNT_JSON_PATH")
+    temp_key_created = False
+    project_id = os.getenv("GCP_PROJECT_ID") or request.POST.get("projectId")
+    checks = request.POST.get("checks")
+    group = request.POST.get("group")
+
+    if not gcp_key_path:
+        file = request.FILES.get("keyFile")
+        if not file:
+            return JsonResponse({"error": "Missing GCP key file"}, status=400)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as temp_key:
+            for chunk in file.chunks():
+                temp_key.write(chunk)
+            gcp_key_path = temp_key.name
+        temp_key_created = True
+
+    try:
+        csv_path = run_prowler_gcp(
+            gcp_key_path, checks=checks, group=group, project_id=project_id
+        )
+        findings = []
+        with open(csv_path, newline="") as csvfile:
+            reader = csv.DictReader(csvfile, delimiter=";")
+            for row in reader:
+                findings.append(row)
+        scan = GCPScan(
+            date=datetime.now(),
+            provider="GCP",
+            accountId=findings[0].get("ACCOUNT_UID", "unknown"),
+            projectId=findings[0].get("PROJECT_ID", project_id or "unknown"),
+            region=findings[0].get("REGION", "global"),
+            findings=findings,
+        )
+        scan.save()
+        return JsonResponse(
+            {
+                "message": "✅ GCP Scan completed",
+                "findingsCount": len(findings),
+                "scanId": str(scan.id),
+            }
+        )
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+    finally:
+        if temp_key_created:
+            os.remove(gcp_key_path)
 
 def home(request):
     return JsonResponse({"message": "CloudScan API is running."})
