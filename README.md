@@ -36,7 +36,7 @@ CloudScan is a lightweight Django REST API that wraps [Prowler](https://github.c
 
 4. **Configure environment variables**
 
-   Create a `.env` file in the project root or export the variables in your shell:
+    Create a `.env` file in the project root (see `.env.example` for a template) or export the variables in your shell:
 
    ```bash
    MONGODB_URI=mongodb://localhost:27017/prowler
