@@ -90,3 +90,19 @@ curl -X POST http://localhost:8000/scan/gcp \
 
 A successful response returns the scan ID and the number of findings. You can then query MongoDB for the stored scan results.
 
+## Testing
+
+Ensure the dependencies from `requirements.txt` are installed before running the tests:
+
+```bash
+pip install -r requirements.txt
+```
+
+Run the Django test suite with:
+
+```bash
+python manage.py test
+```
+
+You may also configure `pytest` together with `pytest-django` if you prefer using `pytest` as the test runner.
+
