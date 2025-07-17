@@ -2,6 +2,7 @@ from django.urls import path
 from .views import (
     ScanAWS,
     scan_gcp,
+    prowler_scan_gcp,
     LatestAWSFindings,
     LatestGCPFindings,
     AWSFinding,
@@ -18,6 +19,7 @@ urlpatterns = [
     # accept both with and without trailing slash
     path('scan/gcp', scan_gcp, name='scan-gcp'),
     path('scan/gcp/', scan_gcp, name='scan-gcp-slash'),
+    path('api/prowler/scan/gcp/', prowler_scan_gcp, name='api-prowler-scan-gcp'),
     path('AWS_Scan', LatestAWSFindings.as_view(), name='aws-latest'),
     path('GCP_Scan', LatestGCPFindings.as_view(), name='gcp-latest'),
     path('AWSfinding/<str:scan_id>', AWSFinding.as_view(), name='aws-finding'),
