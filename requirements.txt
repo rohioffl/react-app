@@ -5,3 +5,4 @@ mongoengine>=0.28.2
 python-dotenv>=1.0.1
 mongomock>=4.1.2
 django-cors-headers>=4.3
+google-cloud-resource-manager>=1.14

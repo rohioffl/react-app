@@ -5,6 +5,10 @@ const Scan = () => {
   const [provider, setProvider] = useState('');
   const [awsCreds, setAwsCreds] = useState({ accessKey: '', secretKey: '', region: 'all' });
   const [gcpKeyFile, setGcpKeyFile] = useState(null);
+  const [gcpProjects, setGcpProjects] = useState([]);
+  const [selectedProject, setSelectedProject] = useState('');
+  const [keyId, setKeyId] = useState('');
+  const [fetchingProjects, setFetchingProjects] = useState(false);
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState('');
   const [progress, setProgress] = useState(0);
@@ -30,8 +34,24 @@ const Scan = () => {
     setAwsCreds({ ...awsCreds, [e.target.name]: e.target.value });
   };
 
-const handleGcpFileChange = (e) => {
-  setGcpKeyFile(e.target.files[0]);
+const handleGcpFileChange = async (e) => {
+  const file = e.target.files[0];
+  setGcpKeyFile(file);
+  if (!file) return;
+  setFetchingProjects(true);
+  const formData = new FormData();
+  formData.append('keyFile', file);
+  try {
+    const res = await api.post('gcp/projects', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    setGcpProjects(res.data.projects);
+    setKeyId(res.data.keyId);
+  } catch (err) {
+    setResponse(`❌ Error: ${err.response?.data?.error || err.message}`);
+  } finally {
+    setFetchingProjects(false);
+  }
 };
 
   const pollStatus = (id) => {
@@ -60,17 +80,18 @@ const handleScan = async () => {
     setResponse('');
     setProgress(0);
 
-    try {
-      let res;
-      if (provider === 'AWS') {
-        res = await api.post('scan/aws', awsCreds);
-      } else if (provider === 'GCP') {
+  try {
+    let res;
+    if (provider === 'AWS') {
+      res = await api.post('scan/aws', awsCreds);
+    } else if (provider === 'GCP') {
         const formData = new FormData();
-        formData.append('keyFile', gcpKeyFile);
+        formData.append('keyId', keyId);
+        formData.append('projectId', selectedProject);
         res = await api.post('scan/gcp/', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-      }
+    }
       if (res) {
         setScanId(res.data.scan_id);
         localStorage.setItem('scanId', res.data.scan_id);
@@ -167,7 +188,19 @@ const handleScan = async () => {
             <span className="text-sm text-gray-600 mb-1">Upload GCP Service Account Key (.json)</span>
             <input type="file" className="hidden" accept=".json" onChange={handleGcpFileChange} />
           </label>
-          {gcpKeyFile && <p className="text-green-700 text-sm">✅ {gcpKeyFile.name}</p>}
+          {fetchingProjects && <p className="text-sm text-blue-600">Loading projects...</p>}
+          {gcpProjects.length > 0 && !fetchingProjects && (
+            <select
+              className="w-full border border-gray-300 px-4 py-2 rounded-lg"
+              value={selectedProject}
+              onChange={(e) => setSelectedProject(e.target.value)}
+            >
+              <option value="">Select Project</option>
+              {gcpProjects.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          )}
         </div>
       )}
 
@@ -175,7 +208,10 @@ const handleScan = async () => {
       <div className="mt-6 text-center">
         <button
           onClick={handleScan}
-          disabled={loading || (provider === 'GCP' && !gcpKeyFile)}
+          disabled={
+            loading ||
+            (provider === 'GCP' && (!keyId || !selectedProject))
+          }
           className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
         >
           {loading ? 'Scanning...' : 'Start Scan'}

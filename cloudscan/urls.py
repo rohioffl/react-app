@@ -15,6 +15,7 @@ from .views import (
     GCPScanHistory,
     AWSScanFindingsExcel,
     GCPScanFindingsExcel,
+    upload_gcp_key,
     home,
 )
 
@@ -23,6 +24,7 @@ urlpatterns = [
     path('scan/aws', ScanAWS.as_view(), name='scan-aws'),
     path('scan/gcp', scan_gcp, name='scan-gcp'),
     path('scan/gcp/', scan_gcp, name='scan-gcp-slash'),  # with trailing slash
+    path('gcp/projects', upload_gcp_key, name='gcp-projects'),
 
     # Prowler Scan APIs
     path('scan/gcp/', prowler_scan_gcp, name='prowler-scan-gcp'),  # For POST scan trigger

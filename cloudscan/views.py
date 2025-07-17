@@ -7,9 +7,44 @@ from .models import AWSScan, GCPScan
 from datetime import datetime
 import csv
 import os
+import tempfile
+import subprocess
+from uuid import uuid4
+from threading import Thread
+from time import sleep
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 
 # In-memory store for async scan progress and results
 SCAN_JOBS = {}
+# Temporary storage mapping key IDs to uploaded service account files
+TEMP_KEYS = {}
+
+
+def fetch_project_ids(key_path):
+    """Return a list of accessible GCP project IDs using the given service account."""
+    try:
+        from google.cloud import resourcemanager_v3
+        from google.oauth2 import service_account
+
+        creds = service_account.Credentials.from_service_account_file(key_path)
+        client = resourcemanager_v3.ProjectsClient(credentials=creds)
+        projects = client.list_projects()
+        return [p.project_id for p in projects if p.state.name == "ACTIVE"]
+    except Exception:
+        # Fallback to gcloud CLI if library fails
+        env = os.environ.copy()
+        env["GOOGLE_APPLICATION_CREDENTIALS"] = key_path
+        result = subprocess.run(
+            ["gcloud", "projects", "list", "--format=json"],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        if result.returncode != 0:
+            raise Exception(result.stderr.strip())
+        data = json.loads(result.stdout)
+        return [p.get("projectId") for p in data]
 
 
 class ScanAWS(APIView):
@@ -79,20 +114,43 @@ class ScanGCP(APIView):
         finally:
             if temp_key_created:
                 os.remove(gcp_key_path)
+
+
+@csrf_exempt
+def upload_gcp_key(request):
+    """Handle service account key upload and return accessible projects."""
+    if request.method != "POST":
+        return JsonResponse({"error": "Only POST allowed"}, status=405)
+
+    file = request.FILES.get("keyFile")
+    if not file:
+        return JsonResponse({"error": "Missing GCP key file"}, status=400)
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as temp_key:
+        for chunk in file.chunks():
+            temp_key.write(chunk)
+        key_path = temp_key.name
+
+    try:
+        projects = fetch_project_ids(key_path)
+    except Exception as e:
+        os.remove(key_path)
+        return JsonResponse({"error": str(e)}, status=500)
+
+    key_id = str(uuid4())
+    TEMP_KEYS[key_id] = key_path
+    return JsonResponse({"projects": projects, "keyId": key_id})
         
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from threading import Thread
-from time import sleep
-from uuid import uuid4
+
 
 @csrf_exempt
 def scan_gcp(request):
     if request.method != "POST":
         return JsonResponse({"error": "Only POST allowed"}, status=405)
 
-    gcp_key_path = os.getenv("GCP_SERVICE_ACCOUNT_JSON_PATH")
-    temp_key_created = False
+    key_id = request.POST.get("keyId")
+    gcp_key_path = TEMP_KEYS.get(key_id) if key_id else os.getenv("GCP_SERVICE_ACCOUNT_JSON_PATH")
+    remove_after = False
     project_id = os.getenv("GCP_PROJECT_ID") or request.POST.get("projectId")
     checks = request.POST.get("checks")
     group = request.POST.get("group")
@@ -105,7 +163,9 @@ def scan_gcp(request):
             for chunk in file.chunks():
                 temp_key.write(chunk)
             gcp_key_path = temp_key.name
-        temp_key_created = True
+        remove_after = True
+    elif key_id:
+        remove_after = True
 
     try:
         csv_path = run_prowler_gcp(
@@ -135,8 +195,10 @@ def scan_gcp(request):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
     finally:
-        if temp_key_created:
+        if remove_after and gcp_key_path:
             os.remove(gcp_key_path)
+            if key_id:
+                TEMP_KEYS.pop(key_id, None)
 
 
 
@@ -279,9 +341,45 @@ def prowler_scan_gcp(request):
     if request.method != "POST":
         return JsonResponse({"error": "Only POST allowed"}, status=405)
 
+    key_id = request.POST.get("keyId")
+    project_id = request.POST.get("projectId")
+    if not key_id or not project_id:
+        return JsonResponse({"error": "Missing keyId or projectId"}, status=400)
+
+    key_path = TEMP_KEYS.get(key_id)
+    if not key_path:
+        return JsonResponse({"error": "Invalid keyId"}, status=400)
+
     scan_id = str(uuid4())
     SCAN_JOBS[scan_id] = {"progress": 0}
-    Thread(target=_simulate_progress, args=(scan_id,), daemon=True).start()
+
+    def run_scan():
+        progress_thread = Thread(target=_simulate_progress, args=(scan_id,), daemon=True)
+        progress_thread.start()
+        try:
+            csv_path = run_prowler_gcp(key_path, project_id=project_id)
+            findings = []
+            with open(csv_path, newline="") as csvfile:
+                reader = csv.DictReader(csvfile, delimiter=";")
+                for row in reader:
+                    findings.append(row)
+            scan = GCPScan(
+                date=datetime.now(),
+                provider="GCP",
+                accountId=findings[0].get("ACCOUNT_UID", "unknown"),
+                projectId=project_id,
+                region=findings[0].get("REGION", "global"),
+                findings=findings,
+            )
+            scan.save()
+            SCAN_JOBS[scan_id]["result"] = {"scanId": str(scan.id), "findingsCount": len(findings)}
+        except Exception as e:
+            SCAN_JOBS[scan_id]["result"] = {"error": str(e)}
+        finally:
+            os.remove(key_path)
+            TEMP_KEYS.pop(key_id, None)
+
+    Thread(target=run_scan, daemon=True).start()
     return JsonResponse({"scan_id": scan_id})
 
 
