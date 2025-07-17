@@ -26,12 +26,14 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "corsheaders",
     "cloudscan",
     # your custom apps here (like 'scans', etc)
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",      # << REQUIRED
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -70,3 +72,6 @@ DATABASES = {
 MONGODB_URI = os.getenv("MONGODB_URI")
 
 STATIC_URL = '/static/'
+
+# Allow cross-origin requests from the React dev server
+CORS_ALLOW_ALL_ORIGINS = True

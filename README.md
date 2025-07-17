@@ -54,6 +54,20 @@ CloudScan is a lightweight Django REST API that wraps [Prowler](https://github.c
    python manage.py runserver 0.0.0.0:8000
    ```
 
+### Running the React frontend
+
+1. Install dependencies and start the Vite dev server:
+
+   ```bash
+   cd frontend
+   npm install
+   cp .env.example .env  # sets VITE_API_BASE_URL
+   npm run dev
+   ```
+
+The API enables CORS so requests from the dev server (typically
+`http://localhost:5173`) can reach Django.
+
 ## Usage
 
 Two endpoints are provided once the server is running:
