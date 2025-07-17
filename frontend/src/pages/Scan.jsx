@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Cloud, ShieldCheck, UploadCloud } from 'lucide-react';
 import api from '../api';
 const Scan = () => {
@@ -7,35 +7,78 @@ const Scan = () => {
   const [gcpKeyFile, setGcpKeyFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState('');
+  const [progress, setProgress] = useState(0);
+  const [scanId, setScanId] = useState(null);
+  const pollRef = useRef();
+
+  useEffect(() => {
+    const saved = localStorage.getItem('scanId');
+    if (saved) {
+      setScanId(saved);
+      setLoading(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (scanId) {
+      pollStatus(scanId);
+    }
+    return () => clearInterval(pollRef.current);
+  }, [scanId]);
 
   const handleAwsChange = (e) => {
     setAwsCreds({ ...awsCreds, [e.target.name]: e.target.value });
   };
 
-  const handleGcpFileChange = (e) => {
-    setGcpKeyFile(e.target.files[0]);
+const handleGcpFileChange = (e) => {
+  setGcpKeyFile(e.target.files[0]);
+};
+
+  const pollStatus = (id) => {
+    clearInterval(pollRef.current);
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await api.get(`/api/prowler/scan/status/${id}`);
+        setProgress(res.data.progress);
+        if (res.data.progress >= 100) {
+          clearInterval(pollRef.current);
+          setLoading(false);
+          if (res.data.result) {
+            setResponse(JSON.stringify(res.data.result, null, 2));
+          }
+          localStorage.removeItem('scanId');
+          setScanId(null);
+        }
+      } catch (err) {
+        console.error('Status check failed', err);
+      }
+    }, 2000);
   };
 
-  const handleScan = async () => {
+const handleScan = async () => {
     setLoading(true);
     setResponse('');
+    setProgress(0);
 
     try {
+      let res;
       if (provider === 'AWS') {
-        const res = await api.post('/scan/aws', awsCreds);
-        setResponse(JSON.stringify(res.data, null, 2));
+        res = await api.post('/api/prowler/scan/aws', awsCreds);
       } else if (provider === 'GCP') {
         const formData = new FormData();
         formData.append('keyFile', gcpKeyFile);
-        const res = await api.post('/scan/gcp/', formData, {
+        res = await api.post('/api/prowler/scan/gcp/', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        setResponse(JSON.stringify(res.data, null, 2));
+      }
+      if (res) {
+        setScanId(res.data.scan_id);
+        localStorage.setItem('scanId', res.data.scan_id);
+        pollStatus(res.data.scan_id);
       }
     } catch (err) {
-      setResponse(`❌ Error: ${err.response?.data?.error || err.message}`);
-    } finally {
       setLoading(false);
+      setResponse(`❌ Error: ${err.response?.data?.error || err.message}`);
     }
   };
 
@@ -138,6 +181,18 @@ const Scan = () => {
           {loading ? 'Scanning...' : 'Start Scan'}
         </button>
       </div>
+
+      {loading && (
+        <div className="mt-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+            <span className="text-sm text-blue-600">Fetching... {progress}%</span>
+          </div>
+          <div className="w-full bg-gray-200 h-2 rounded">
+            <div className="bg-blue-600 h-2 rounded" style={{ width: `${progress}%` }}></div>
+          </div>
+        </div>
+      )}
 
       {/* Output */}
       {response && (
