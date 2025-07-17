@@ -5,3 +5,8 @@ venv/
 /output
 
 /temp
+
+*.pyc
+__pycache__/
+*.sqlite3
+*.db
