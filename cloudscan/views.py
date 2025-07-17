@@ -8,6 +8,9 @@ from datetime import datetime
 import csv
 import os
 
+# In-memory store for async scan progress and results
+SCAN_JOBS = {}
+
 
 class ScanAWS(APIView):
     def post(self, request):
@@ -79,6 +82,9 @@ class ScanGCP(APIView):
         
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from threading import Thread
+from time import sleep
+from uuid import uuid4
 
 @csrf_exempt
 def scan_gcp(request):
@@ -133,15 +139,6 @@ def scan_gcp(request):
             os.remove(gcp_key_path)
 
 
-@csrf_exempt
-def prowler_scan_gcp(request):
-    """Handle POST to start a GCP scan via /api/prowler/scan/gcp/."""
-    if request.method != "POST":
-        return JsonResponse({"error": "Only POST allowed"}, status=405)
-
-    # Here you could trigger the real scan asynchronously. For now just
-    # acknowledge the request so the frontend knows the scan was started.
-    return JsonResponse({"status": "Scan started"})
 
 def home(request):
     return JsonResponse({"message": "CloudScan API is running."})
@@ -253,4 +250,55 @@ class GCPScanFindingsExcel(APIView):
         except GCPScan.DoesNotExist:
             return Response({"error": "Scan not found"}, status=404)
         return Response({"findings": scan.findings})
+
+# --- Async scan helpers and API endpoints ---
+
+def _simulate_progress(scan_id):
+    """Simulate progress updates for demonstration purposes."""
+    for i in range(1, 11):
+        SCAN_JOBS[scan_id]["progress"] = i * 10
+        sleep(0.5)
+    SCAN_JOBS[scan_id]["result"] = {"status": "completed"}
+
+
+@csrf_exempt
+def prowler_scan_aws(request):
+    """Start an async AWS scan and return a scan_id."""
+    if request.method != "POST":
+        return JsonResponse({"error": "Only POST allowed"}, status=405)
+
+    scan_id = str(uuid4())
+    SCAN_JOBS[scan_id] = {"progress": 0}
+    Thread(target=_simulate_progress, args=(scan_id,), daemon=True).start()
+    return JsonResponse({"scan_id": scan_id})
+
+
+@csrf_exempt
+def prowler_scan_gcp(request):
+    """Start an async GCP scan and return a scan_id."""
+    if request.method != "POST":
+        return JsonResponse({"error": "Only POST allowed"}, status=405)
+
+    scan_id = str(uuid4())
+    SCAN_JOBS[scan_id] = {"progress": 0}
+    Thread(target=_simulate_progress, args=(scan_id,), daemon=True).start()
+    return JsonResponse({"scan_id": scan_id})
+
+
+def scan_status(request, scan_id):
+    """Return progress info for a running scan."""
+    job = SCAN_JOBS.get(scan_id)
+    if not job:
+        return JsonResponse({"error": "Not found"}, status=404)
+    return JsonResponse({"progress": job.get("progress", 0), "result": job.get("result")})
+
+
+def api_prowler_scanlist(request):
+    """Dummy endpoint returning an empty scan list."""
+    return JsonResponse({"scans": []})
+
+
+def api_prowler_gcp_scanlist(request):
+    """Dummy endpoint returning an empty GCP scan list."""
+    return JsonResponse({"scans": []})
 
