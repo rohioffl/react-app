@@ -11,8 +11,8 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 # See the README for details on configuring ``DJANGO_SECRET_KEY``.
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
-AWS_ACCESS_KEY = os.getenv('AWS_ACCESS_KEY')
-AWS_SECRET_KEY = os.getenv('AWS_SECRET_KEY')
+AWS_ACCESS_KEY = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 AWS_DEFAULT_REGION = os.getenv('AWS_DEFAULT_REGION')
 GCP_KEY_PATH = os.getenv('GCP_KEY_PATH')
 
