@@ -2,9 +2,6 @@
 
 venv/
 
-/output
-
-/temp
 
 *.pyc
 __pycache__/

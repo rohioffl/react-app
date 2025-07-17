@@ -38,7 +38,7 @@ const handleGcpFileChange = (e) => {
     clearInterval(pollRef.current);
     pollRef.current = setInterval(async () => {
       try {
-        const res = await api.get(`/api/prowler/scan/status/${id}`);
+        const res = await api.get(`scan/status/${id}`);
         setProgress(res.data.progress);
         if (res.data.progress >= 100) {
           clearInterval(pollRef.current);
@@ -63,11 +63,11 @@ const handleScan = async () => {
     try {
       let res;
       if (provider === 'AWS') {
-        res = await api.post('/api/prowler/scan/aws', awsCreds);
+        res = await api.post('scan/aws', awsCreds);
       } else if (provider === 'GCP') {
         const formData = new FormData();
         formData.append('keyFile', gcpKeyFile);
-        res = await api.post('/api/prowler/scan/gcp/', formData, {
+        res = await api.post('scan/gcp/', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
       }
