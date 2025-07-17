@@ -7,7 +7,9 @@ ROOT_URLCONF = 'prow.urls'
 
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
-SECRET_KEY = '9y#^i#mt=6lp+#xsu8z!rm4!a-nmp1ew696bci#26j-#6z$xa1'
+# The Django secret key should come from the environment for security.
+# See the README for details on configuring ``DJANGO_SECRET_KEY``.
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 AWS_ACCESS_KEY = os.getenv('AWS_ACCESS_KEY')
 AWS_SECRET_KEY = os.getenv('AWS_SECRET_KEY')
