@@ -82,3 +82,111 @@ from django.http import JsonResponse
 def home(request):
     return JsonResponse({"message": "CloudScan API is running."})
 
+# Additional API views used by the React frontend
+
+class LatestAWSFindings(APIView):
+    """Return findings from the most recent AWS scan."""
+
+    def get(self, request):
+        scan = AWSScan.objects.order_by('-date').first()
+        if not scan:
+            return Response({"findings": []})
+        return Response({"findings": scan.findings})
+
+
+class LatestGCPFindings(APIView):
+    """Return findings from the most recent GCP scan."""
+
+    def get(self, request):
+        scan = GCPScan.objects.order_by('-date').first()
+        if not scan:
+            return Response({"findings": []})
+        return Response({"findings": scan.findings})
+
+
+class AWSFinding(APIView):
+    """Return findings for a specific AWS scan."""
+
+    def get(self, request, scan_id):
+        try:
+            scan = AWSScan.objects.get(id=scan_id)
+        except AWSScan.DoesNotExist:
+            return Response({"error": "Scan not found"}, status=404)
+        return Response({"findings": scan.findings})
+
+
+class GCPFinding(APIView):
+    """Return findings for a specific GCP scan."""
+
+    def get(self, request, scan_id):
+        try:
+            scan = GCPScan.objects.get(id=scan_id)
+        except GCPScan.DoesNotExist:
+            return Response({"error": "Scan not found"}, status=404)
+        return Response({"findings": scan.findings})
+
+
+class AWSScanHistory(APIView):
+    """Return a list of all AWS scans with basic info."""
+
+    def get(self, request):
+        scans = AWSScan.objects.order_by('-date')
+        data = [
+            {
+                "_id": str(scan.id),
+                "date": scan.date,
+                "provider": scan.provider,
+                "region": scan.region,
+                "accountId": scan.accountId,
+            }
+            for scan in scans
+        ]
+        return Response({"data": data})
+
+
+class GCPScanHistory(APIView):
+    """Return a list of all GCP scans with basic info."""
+
+    def get(self, request):
+        scans = GCPScan.objects.order_by('-date')
+        data = [
+            {
+                "_id": str(scan.id),
+                "date": scan.date,
+                "provider": scan.provider,
+                "region": scan.region,
+                "accountId": scan.accountId,
+                "projectId": scan.projectId,
+            }
+            for scan in scans
+        ]
+        return Response({"data": data})
+
+
+class AWSScanFindingsExcel(APIView):
+    """Return findings for an AWS scan (used for Excel export)."""
+
+    def post(self, request):
+        scan_id = request.data.get("id")
+        if not scan_id:
+            return Response({"error": "Missing id"}, status=400)
+        try:
+            scan = AWSScan.objects.get(id=scan_id)
+        except AWSScan.DoesNotExist:
+            return Response({"error": "Scan not found"}, status=404)
+        return Response({"findings": scan.findings})
+
+
+class GCPScanFindingsExcel(APIView):
+    """Return findings for a GCP scan (used for Excel export)."""
+
+    def post(self, request):
+        scan_id = request.data.get("id")
+        if not scan_id:
+            return Response({"error": "Missing id"}, status=400)
+        try:
+            scan = GCPScan.objects.get(id=scan_id)
+        except GCPScan.DoesNotExist:
+            return Response({"error": "Scan not found"}, status=404)
+        return Response({"findings": scan.findings})
+
