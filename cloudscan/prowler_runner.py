@@ -5,7 +5,7 @@ import time
 OUTPUT_DIR = os.path.abspath("./output")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-def run_prowler_aws(access_key, secret_key, region, checks=None, group=None):
+def run_prowler_aws(access_key, secret_key, region, checks=None):
     timestamp = int(time.time() * 1000)
     output_filename = f"aws-scan-{timestamp}"
     output_json = os.path.join(OUTPUT_DIR, f"{output_filename}.asff.json")
@@ -26,8 +26,6 @@ def run_prowler_aws(access_key, secret_key, region, checks=None, group=None):
         prowler_cmd += ["--region", region]
     if checks:
         prowler_cmd += ["-c", checks]
-    if group:
-        prowler_cmd += ["-g", group]
 
     # You can print the command for debugging
     print("Running:", " ".join(prowler_cmd))
@@ -41,7 +39,7 @@ def run_prowler_aws(access_key, secret_key, region, checks=None, group=None):
         raise Exception("Prowler did not generate JSON output.")
     return output_json
 
-def run_prowler_gcp(gcp_key_file, checks=None, group=None, project_id=None):
+def run_prowler_gcp(gcp_key_file, project_id=None, checks=None, group=None):
     timestamp = int(time.time() * 1000)
     output_filename = f"gcp-scan-{timestamp}"
     output_csv = os.path.join(OUTPUT_DIR, f"{output_filename}.csv")

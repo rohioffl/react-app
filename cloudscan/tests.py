@@ -83,8 +83,8 @@ class ScanViewTests(TestCase):
         self.assertEqual(scan.accountId, "gcp123")
         self.assertEqual(scan.projectId, "proj")
 
-    def test_scan_aws_with_checks_and_group(self):
-        """POST /scan/aws should pass checks and group to the runner."""
+    def test_scan_aws_with_checks(self):
+        """POST /scan/aws should pass checks to the runner."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp_json:
             json.dump([{"AwsAccountId": "123"}], tmp_json)
             json_path = tmp_json.name
@@ -96,14 +96,13 @@ class ScanViewTests(TestCase):
                     "accessKey": "AKIA...",
                     "secretKey": "secret",
                     "checks": "check1",
-                    "group": "group1",
                 },
             )
 
         os.remove(json_path)
 
         self.assertEqual(resp.status_code, 200)
-        mock_run.assert_called_with("AKIA...", "secret", "all", checks="check1", group="group1")
+        mock_run.assert_called_with("AKIA...", "secret", "all", checks="check1")
 
     def test_scan_gcp_with_checks_and_group(self):
         """POST /scan/gcp should pass checks and group to the runner."""
