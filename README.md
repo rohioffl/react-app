@@ -44,6 +44,7 @@ CloudScan is a lightweight Django REST API that wraps [Prowler](https://github.c
    AWS_SECRET_ACCESS_KEY=<your aws secret key>
    AWS_DEFAULT_REGION=us-east-1          # optional
    GCP_SERVICE_ACCOUNT_JSON_PATH=/path/to/gcp-key.json  # optional
+   GCP_PROJECT_ID=<your gcp project id>                 # optional
    ```
 
 5. **Run the API**
@@ -62,7 +63,10 @@ Two endpoints are provided once the server is running:
 
 Both endpoints accept optional `checks` or `group` parameters which are passed
 to Prowler as `-c` or `-g` flags. This lets you run a subset of checks for
-faster scans.
+faster scans. The GCP endpoint also supports an optional `projectId` parameter
+that is forwarded to Prowler as `--project-ids` to scan a specific project. You
+can also set the `GCP_PROJECT_ID` environment variable instead of passing it in
+the request.
 
 ### Example: AWS scan
 
@@ -77,7 +81,10 @@ curl -X POST http://localhost:8000/scan/aws \
 ```bash
 curl -X POST http://localhost:8000/scan/gcp \
      -F keyFile=@/path/to/service-account.json \
-     -F checks=check1
+     -F checks=check1 \
+     -F projectId=my-project
+# Alternatively set the environment variable:
+# export GCP_PROJECT_ID=my-project
 ```
 
 A successful response returns the scan ID and the number of findings. You can then query MongoDB for the stored scan results.

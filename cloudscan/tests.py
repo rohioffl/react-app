@@ -58,15 +58,22 @@ class ScanViewTests(TestCase):
         """POST /scan/gcp should create a GCPScan document."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as tmp_csv:
             writer = csv.DictWriter(
-                tmp_csv, fieldnames=["ACCOUNT_UID", "REGION"], delimiter=";"
+                tmp_csv,
+                fieldnames=["ACCOUNT_UID", "REGION", "PROJECT_ID"],
+                delimiter=";",
             )
             writer.writeheader()
-            writer.writerow({"ACCOUNT_UID": "gcp123", "REGION": "us-central1"})
+            writer.writerow(
+                {"ACCOUNT_UID": "gcp123", "REGION": "us-central1", "PROJECT_ID": "proj"}
+            )
             csv_path = tmp_csv.name
 
         with patch("cloudscan.views.run_prowler_gcp", return_value=csv_path):
-            with patch.dict(os.environ, {"GCP_SERVICE_ACCOUNT_JSON_PATH": "/tmp/key.json"}):
-                resp = self.client.post("/scan/gcp")
+            with patch.dict(
+                os.environ,
+                {"GCP_SERVICE_ACCOUNT_JSON_PATH": "/tmp/key.json"},
+            ):
+                resp = self.client.post("/scan/gcp", {"projectId": "proj"})
 
         os.remove(csv_path)
 
@@ -74,6 +81,7 @@ class ScanViewTests(TestCase):
         self.assertEqual(GCPScan.objects.count(), 1)
         scan = GCPScan.objects.first()
         self.assertEqual(scan.accountId, "gcp123")
+        self.assertEqual(scan.projectId, "proj")
 
     def test_scan_aws_with_checks_and_group(self):
         """POST /scan/aws should pass checks and group to the runner."""
@@ -115,4 +123,43 @@ class ScanViewTests(TestCase):
         os.remove(csv_path)
 
         self.assertEqual(resp.status_code, 200)
-        mock_run.assert_called_with("/tmp/key.json", checks="check2", group="group2")
+        mock_run.assert_called_with(
+            "/tmp/key.json", checks="check2", group="group2", project_id=None
+        )
+
+    def test_scan_gcp_with_project_id(self):
+        """POST /scan/gcp should pass projectId to the runner."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as tmp_csv:
+            writer = csv.DictWriter(tmp_csv, fieldnames=["ACCOUNT_UID", "REGION"], delimiter=";")
+            writer.writeheader()
+            writer.writerow({"ACCOUNT_UID": "id", "REGION": "region"})
+            csv_path = tmp_csv.name
+
+        with patch("cloudscan.views.run_prowler_gcp", return_value=csv_path) as mock_run:
+            with patch.dict(os.environ, {"GCP_SERVICE_ACCOUNT_JSON_PATH": "/tmp/key.json"}):
+                resp = self.client.post("/scan/gcp", {"projectId": "proj-1"})
+
+        os.remove(csv_path)
+
+        self.assertEqual(resp.status_code, 200)
+        mock_run.assert_called_with("/tmp/key.json", checks=None, group=None, project_id="proj-1")
+
+    def test_scan_gcp_project_id_env(self):
+        """If projectId not in request, value from env is used."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as tmp_csv:
+            writer = csv.DictWriter(tmp_csv, fieldnames=["ACCOUNT_UID", "REGION"], delimiter=";")
+            writer.writeheader()
+            writer.writerow({"ACCOUNT_UID": "id", "REGION": "region"})
+            csv_path = tmp_csv.name
+
+        with patch("cloudscan.views.run_prowler_gcp", return_value=csv_path) as mock_run:
+            with patch.dict(os.environ, {
+                "GCP_SERVICE_ACCOUNT_JSON_PATH": "/tmp/key.json",
+                "GCP_PROJECT_ID": "env-proj",
+            }):
+                resp = self.client.post("/scan/gcp")
+
+        os.remove(csv_path)
+
+        self.assertEqual(resp.status_code, 200)
+        mock_run.assert_called_with("/tmp/key.json", checks=None, group=None, project_id="env-proj")

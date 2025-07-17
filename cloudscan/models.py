@@ -11,5 +11,6 @@ class GCPScan(Document):
     provider = StringField(default="GCP")
     date = DateTimeField()
     accountId = StringField()
+    projectId = StringField()
     region = StringField()
     findings = ListField(DictField())
