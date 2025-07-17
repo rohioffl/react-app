@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { useParams } from 'react-router-dom';
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+import api from '../api';
 
 const getSeverityColor = (severity) => {
   switch (severity?.toUpperCase()) {
@@ -37,7 +36,7 @@ const GCPFindingDetails = () => {
   useEffect(() => {
     const fetchFinding = async () => {
       try {
-        const res = await axios.get(`${API_BASE_URL}/GCPfinding/${id}`);
+        const res = await api.get(`/GCPfinding/${id}`);
         setFindings(res.data.findings);
       } catch (err) {
         console.error('❌ Error fetching finding:', err);

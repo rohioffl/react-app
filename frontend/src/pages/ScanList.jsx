@@ -1,8 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import axios from "axios"
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+import api from "../api"
 const ScanList = () => {
   const [scans, setScans] = useState([])
   const [loading, setLoading] = useState(true)
@@ -10,11 +9,14 @@ const ScanList = () => {
   useEffect(() => {
     const fetchScanData = async () => {
       try {
-        const res = await axios.get(`${API_BASE_URL}/AWS_Scan`)
+        const res = await api.get('/AWS_Scan')
         setScans(res.data.findings)
         console.table(res.data.findings)
       } catch (err) {
-        console.error("Failed to fetch scan list:", err)
+        console.error(
+          "Failed to fetch scan list:",
+          err.response?.data?.error || err
+        )
       } finally {
         setLoading(false)
       }

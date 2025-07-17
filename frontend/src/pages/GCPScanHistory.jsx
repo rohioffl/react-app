@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+import api from '../api';
 
 const GCPScanHistory = () => {
     const [scans, setScans] = useState([]);
@@ -13,10 +12,13 @@ const GCPScanHistory = () => {
     useEffect(() => {
         const fetchScans = async () => {
             try {
-                const res = await axios.get(`${API_BASE_URL}/GCPscanlist`);
+                const res = await api.get('/GCPscanlist');
                 setScans(res.data.data);
             } catch (err) {
-                console.error('❌ Error fetching scan list:', err);
+                console.error(
+                    '❌ Error fetching scan list:',
+                    err.response?.data?.error || err
+                );
             } finally {
                 setLoading(false);
             }
@@ -31,7 +33,7 @@ const GCPScanHistory = () => {
 
     const handleDownloadSelected = async (selectedIds) => {
         try {
-            const res = await axios.post(`${API_BASE_URL}/gcp-xls`, {
+            const res = await api.post('/gcp-xls', {
                 id: selectedIds,
             });
            
@@ -63,7 +65,10 @@ const GCPScanHistory = () => {
             const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
             saveAs(blob, `GCP_scan_${selectedIds}_findings.xlsx`);
         } catch (err) {
-            console.error("❌ Error downloading Excel:", err);
+            console.error(
+                "❌ Error downloading Excel:",
+                err.response?.data?.error || err
+            );
         }
     }
 
