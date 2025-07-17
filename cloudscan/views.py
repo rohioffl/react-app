@@ -5,7 +5,6 @@ from rest_framework import status
 from .prowler_runner import run_prowler_aws, run_prowler_gcp
 from .models import AWSScan, GCPScan
 from datetime import datetime
-from mongoengine import connect
 import csv
 import os
 
