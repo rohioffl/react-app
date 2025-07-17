@@ -15,31 +15,38 @@ from .views import (
     GCPScanHistory,
     AWSScanFindingsExcel,
     GCPScanFindingsExcel,
+    home,
 )
-from cloudscan import views
 
 urlpatterns = [
+    # Scan Endpoints
     path('scan/aws', ScanAWS.as_view(), name='scan-aws'),
-    # accept both with and without trailing slash
     path('scan/gcp', scan_gcp, name='scan-gcp'),
-    path('scan/gcp/', scan_gcp, name='scan-gcp-slash'),
-    path('api/prowler/scan/gcp', prowler_scan_gcp, name='api-prowler-scan-gcp-no-slash'),
-    path('api/prowler/scan/gcp/', prowler_scan_gcp, name='api-prowler-scan-gcp'),
-    path('api/prowler/scan/aws', prowler_scan_aws, name='api-prowler-scan-aws'),
-    path('api/prowler/scan/aws/', prowler_scan_aws, name='api-prowler-scan-aws-slash'),
-    path('api/prowler/scan/status/<str:scan_id>', scan_status, name='api-prowler-scan-status'),
-    path('api/prowler/scan/status/<str:scan_id>/', scan_status, name='api-prowler-scan-status-slash'),
-    path('api/prowler/scanlist', api_prowler_scanlist, name='api-prowler-scanlist'),
-    path('api/prowler/scanlist/', api_prowler_scanlist, name='api-prowler-scanlist-slash'),
-    path('api/prowler/GCPscanlist', api_prowler_gcp_scanlist, name='api-prowler-gcp-scanlist'),
-    path('api/prowler/GCPscanlist/', api_prowler_gcp_scanlist, name='api-prowler-gcp-scanlist-slash'),
-    path('AWS_Scan', LatestAWSFindings.as_view(), name='aws-latest'),
-    path('GCP_Scan', LatestGCPFindings.as_view(), name='gcp-latest'),
-    path('AWSfinding/<str:scan_id>', AWSFinding.as_view(), name='aws-finding'),
-    path('GCPfinding/<str:scan_id>', GCPFinding.as_view(), name='gcp-finding'),
-    path('scanlist', AWSScanHistory.as_view(), name='aws-scan-list'),
-    path('GCPscanlist', GCPScanHistory.as_view(), name='gcp-scan-list'),
-    path('xls', AWSScanFindingsExcel.as_view(), name='aws-xls'),
-    path('gcp-xls', GCPScanFindingsExcel.as_view(), name='gcp-xls'),
-    path("", views.home, name="home"),
+    path('scan/gcp/', scan_gcp, name='scan-gcp-slash'),  # with trailing slash
+
+    # Prowler Scan APIs
+    path('scan/gcp/', prowler_scan_gcp, name='prowler-scan-gcp'),  # For POST scan trigger
+    path('scan/aws/', prowler_scan_aws, name='prowler-scan-aws'),  # For POST scan trigger
+
+    # Scan status (for progress polling)
+    path('scan/status/<str:scan_id>/', scan_status, name='scan-status'),
+
+    # Scanlists
+    path('scanlist/', api_prowler_scanlist, name='scanlist'),
+    path('GCPscanlist/', api_prowler_gcp_scanlist, name='gcp-scanlist'),
+
+    # Findings & History
+    path('AWS_Scan/', LatestAWSFindings.as_view(), name='aws-latest'),
+    path('GCP_Scan/', LatestGCPFindings.as_view(), name='gcp-latest'),
+    path('AWSfinding/<str:scan_id>/', AWSFinding.as_view(), name='aws-finding'),
+    path('GCPfinding/<str:scan_id>/', GCPFinding.as_view(), name='gcp-finding'),
+    path('scanlist/history/', AWSScanHistory.as_view(), name='aws-scan-history'),
+    path('GCPscanlist/history/', GCPScanHistory.as_view(), name='gcp-scan-history'),
+
+    # Excel downloads
+    path('xls/', AWSScanFindingsExcel.as_view(), name='aws-xls'),
+    path('gcp-xls/', GCPScanFindingsExcel.as_view(), name='gcp-xls'),
+
+    # Home
+    path("", home, name="home"),
 ]
