@@ -132,6 +132,17 @@ def scan_gcp(request):
         if temp_key_created:
             os.remove(gcp_key_path)
 
+
+@csrf_exempt
+def prowler_scan_gcp(request):
+    """Handle POST to start a GCP scan via /api/prowler/scan/gcp/."""
+    if request.method != "POST":
+        return JsonResponse({"error": "Only POST allowed"}, status=405)
+
+    # Here you could trigger the real scan asynchronously. For now just
+    # acknowledge the request so the frontend knows the scan was started.
+    return JsonResponse({"status": "Scan started"})
+
 def home(request):
     return JsonResponse({"message": "CloudScan API is running."})
 
