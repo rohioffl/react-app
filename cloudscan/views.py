@@ -5,6 +5,7 @@ from rest_framework import status
 from .prowler_runner import run_prowler_aws, run_prowler_gcp
 from .models import AWSScan, GCPScan
 from datetime import datetime
+from mongoengine import connect
 import csv
 import os
 
@@ -15,10 +16,11 @@ class ScanAWS(APIView):
         secret_key = os.getenv("AWS_SECRET_ACCESS_KEY") or request.data.get("secretKey")
         region = request.data.get("region", "all")
         checks = request.data.get("checks")
+        group = request.data.get("group")
         if not access_key or not secret_key:
             return Response({"error": "Missing AWS credentials"}, status=400)
         try:
-            json_path = run_prowler_aws(access_key, secret_key, region, checks=checks)
+            json_path = run_prowler_aws(access_key, secret_key, region, checks=checks, group=group)
             with open(json_path) as f:
                 findings = json.load(f)
             scan = AWSScan(
@@ -38,7 +40,7 @@ import tempfile
 class ScanGCP(APIView):
     def post(self, request):
         gcp_key_path = os.getenv("GCP_SERVICE_ACCOUNT_JSON_PATH")
-        project_id = request.data.get("projectId") or os.getenv("GCP_PROJECT_ID")
+        project_id = os.getenv("GCP_PROJECT_ID") or request.data.get("projectId")
         checks = request.data.get("checks")
         group = request.data.get("group")
         if not gcp_key_path:
