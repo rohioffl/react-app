@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (
     ScanAWS,
-    ScanGCP,
+    scan_gcp,
     LatestAWSFindings,
     LatestGCPFindings,
     AWSFinding,
@@ -15,7 +15,9 @@ from cloudscan import views
 
 urlpatterns = [
     path('scan/aws', ScanAWS.as_view(), name='scan-aws'),
-    path('scan/gcp', ScanGCP.as_view(), name='scan-gcp'),
+    # accept both with and without trailing slash
+    path('scan/gcp', scan_gcp, name='scan-gcp'),
+    path('scan/gcp/', scan_gcp, name='scan-gcp-slash'),
     path('AWS_Scan', LatestAWSFindings.as_view(), name='aws-latest'),
     path('GCP_Scan', LatestGCPFindings.as_view(), name='gcp-latest'),
     path('AWSfinding/<str:scan_id>', AWSFinding.as_view(), name='aws-finding'),

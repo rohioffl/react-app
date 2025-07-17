@@ -27,7 +27,7 @@ const Scan = () => {
       } else if (provider === 'GCP') {
         const formData = new FormData();
         formData.append('keyFile', gcpKeyFile);
-        const res = await api.post('/scan/gcp', formData, {
+        const res = await api.post('/scan/gcp/', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         setResponse(JSON.stringify(res.data, null, 2));
