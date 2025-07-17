@@ -1,4 +1,5 @@
 from django.test import TestCase, Client
+from django.core.files.uploadedfile import SimpleUploadedFile
 from unittest.mock import patch
 from mongoengine import connect, disconnect
 
@@ -163,3 +164,46 @@ class ScanViewTests(TestCase):
 
         self.assertEqual(resp.status_code, 200)
         mock_run.assert_called_with("/tmp/key.json", checks=None, group=None, project_id="env-proj")
+
+    def test_scan_gcp_temp_key_file_removed(self):
+        """Temporary key file uploaded should be removed after scan."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as tmp_csv:
+            writer = csv.DictWriter(tmp_csv, fieldnames=["ACCOUNT_UID", "REGION"], delimiter=";")
+            writer.writeheader()
+            writer.writerow({"ACCOUNT_UID": "id", "REGION": "region"})
+            csv_path = tmp_csv.name
+
+        captured = {}
+
+        def fake_run(key_path, checks=None, group=None, project_id=None):
+            captured['path'] = key_path
+            self.assertTrue(os.path.exists(key_path))
+            return csv_path
+
+        with patch("cloudscan.views.run_prowler_gcp", side_effect=fake_run):
+            with patch("os.remove") as mock_remove:
+                uploaded = SimpleUploadedFile("key.json", b"{}", content_type="application/json")
+                resp = self.client.post("/scan/gcp", {"keyFile": uploaded})
+
+        os.remove(csv_path)
+
+        self.assertEqual(resp.status_code, 200)
+        mock_remove.assert_called_once_with(captured['path'])
+
+    def test_scan_gcp_env_key_not_removed(self):
+        """Key path from env should not be deleted."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as tmp_csv:
+            writer = csv.DictWriter(tmp_csv, fieldnames=["ACCOUNT_UID", "REGION"], delimiter=";")
+            writer.writeheader()
+            writer.writerow({"ACCOUNT_UID": "id", "REGION": "region"})
+            csv_path = tmp_csv.name
+
+        with patch("cloudscan.views.run_prowler_gcp", return_value=csv_path):
+            with patch.dict(os.environ, {"GCP_SERVICE_ACCOUNT_JSON_PATH": "/tmp/key.json"}):
+                with patch("os.remove") as mock_remove:
+                    resp = self.client.post("/scan/gcp")
+
+        os.remove(csv_path)
+
+        self.assertEqual(resp.status_code, 200)
+        mock_remove.assert_not_called()

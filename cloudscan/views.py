@@ -40,6 +40,7 @@ import tempfile
 class ScanGCP(APIView):
     def post(self, request):
         gcp_key_path = os.getenv("GCP_SERVICE_ACCOUNT_JSON_PATH")
+        temp_key_created = False
         project_id = os.getenv("GCP_PROJECT_ID") or request.data.get("projectId")
         checks = request.data.get("checks")
         group = request.data.get("group")
@@ -51,6 +52,7 @@ class ScanGCP(APIView):
                 for chunk in file.chunks():
                     temp_key.write(chunk)
                 gcp_key_path = temp_key.name
+            temp_key_created = True
 
         try:
             csv_path = run_prowler_gcp(
@@ -73,6 +75,9 @@ class ScanGCP(APIView):
             return Response({"message": "✅ GCP Scan completed", "findingsCount": len(findings), "scanId": str(scan.id)})
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+        finally:
+            if temp_key_created:
+                os.remove(gcp_key_path)
         
 from django.http import JsonResponse
 
