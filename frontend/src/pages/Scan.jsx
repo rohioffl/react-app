@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { Cloud, ShieldCheck, UploadCloud } from 'lucide-react';
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+import api from '../api';
 const Scan = () => {
   const [provider, setProvider] = useState('');
   const [awsCreds, setAwsCreds] = useState({ accessKey: '', secretKey: '', region: 'all' });
   const [gcpKeyFile, setGcpKeyFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState('');
-  console.log(API_BASE_URL)
 
   const handleAwsChange = (e) => {
     setAwsCreds({ ...awsCreds, [e.target.name]: e.target.value });
@@ -24,18 +22,18 @@ const Scan = () => {
 
     try {
       if (provider === 'AWS') {
-        const res = await axios.post(`${API_BASE_URL}/scan/aws`, awsCreds);
+        const res = await api.post('/scan/aws', awsCreds);
         setResponse(JSON.stringify(res.data, null, 2));
       } else if (provider === 'GCP') {
         const formData = new FormData();
         formData.append('keyFile', gcpKeyFile);
-        const res = await axios.post(`${API_BASE_URL}/scan/gcp`, formData, {
+        const res = await api.post('/scan/gcp', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         setResponse(JSON.stringify(res.data, null, 2));
       }
     } catch (err) {
-      setResponse(`❌ Error: ${err.message}`);
+      setResponse(`❌ Error: ${err.response?.data?.error || err.message}`);
     } finally {
       setLoading(false);
     }
