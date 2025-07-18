@@ -1,4 +1,5 @@
 from django.apps import AppConfig
+import logging
 import os
 from mongoengine import connect
 from mongoengine.connection import get_connection
@@ -9,12 +10,20 @@ class CloudscanConfig(AppConfig):
     name = 'cloudscan'
 
     def ready(self):
-        """Connect to MongoDB if ``MONGODB_URI`` is configured."""
+        """Connect to MongoDB on startup and log the outcome."""
         mongo_uri = os.getenv("MONGODB_URI")
         if not mongo_uri:
             return
+
+        logger = logging.getLogger(__name__)
+
         try:
-            # only connect if no default connection is registered
+            # Only connect if no default connection is registered
             get_connection()
+            logger.info("\u2705 MongoDB connection already established.")
         except Exception:
-            connect(host=mongo_uri)
+            try:
+                connect(host=mongo_uri)
+                logger.info("\u2705 MongoDB connection established.")
+            except Exception as exc:
+                logger.error("\u274c Failed to connect to MongoDB: %s", exc)
