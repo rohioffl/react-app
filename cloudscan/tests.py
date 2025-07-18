@@ -217,6 +217,7 @@ class ScanViewTests(TestCase):
         data = json.loads(resp.content)
         self.assertEqual(data["projects"], ["proj1", "proj2"])
         self.assertIn("keyId", data)
+        self.assertNotIn("warning", data)
 
     def test_upload_gcp_key_handles_project_list_error(self):
         """Even if listing projects fails, a keyId should be returned."""
@@ -228,6 +229,7 @@ class ScanViewTests(TestCase):
         data = json.loads(resp.content)
         self.assertEqual(data["projects"], [])
         self.assertIn("keyId", data)
+        self.assertEqual(data.get("warning"), "bad")
 
     def test_scan_gcp_with_key_id(self):
         """/scan/gcp should accept keyId referencing uploaded file."""
