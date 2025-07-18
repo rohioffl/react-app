@@ -88,7 +88,7 @@ const handleScan = async () => {
         const formData = new FormData();
         formData.append('keyId', keyId);
         formData.append('projectId', selectedProject);
-        res = await api.post('scan/gcp/', formData, {
+        res = await api.post('scan/async/gcp/', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
     }

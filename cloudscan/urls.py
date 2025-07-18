@@ -27,8 +27,9 @@ urlpatterns = [
     path('gcp/projects', upload_gcp_key, name='gcp-projects'),
 
     # Prowler Scan APIs
-    path('scan/gcp/', prowler_scan_gcp, name='prowler-scan-gcp'),  # For POST scan trigger
-    path('scan/aws/', prowler_scan_aws, name='prowler-scan-aws'),  # For POST scan trigger
+    # Async scan triggers
+    path('scan/async/gcp/', prowler_scan_gcp, name='prowler-scan-gcp'),
+    path('scan/async/aws/', prowler_scan_aws, name='prowler-scan-aws'),
 
     # Scan status (for progress polling)
     path('scan/status/<str:scan_id>/', scan_status, name='scan-status'),

@@ -97,10 +97,24 @@ curl -X POST http://localhost:8000/scan/aws \
 curl -X POST http://localhost:8000/scan/gcp \
      -F keyFile=@/path/to/service-account.json \
      -F checks=check1 \
-     -F projectId=my-project
+    -F projectId=my-project
 # Alternatively set the environment variable:
 # export GCP_PROJECT_ID=my-project
 ```
+
+### Async GCP workflow
+
+For the React frontend, scans are started asynchronously:
+
+1. Upload a service account key to `/api/prowler/gcp/projects`.
+   The response includes a `keyId` and the list of accessible `projects`.
+2. Start the scan via `POST /api/prowler/scan/async/gcp/` with `keyId` and
+   the chosen `projectId`.
+3. Poll `/api/prowler/scan/status/<scan_id>/` until `progress` reaches 100 and
+   a `result` object is returned.
+
+The React example in `frontend/src/example/GcpAsyncScan.jsx` demonstrates this
+flow.
 
 A successful response returns the scan ID and the number of findings. You can then query MongoDB for the stored scan results.
 
