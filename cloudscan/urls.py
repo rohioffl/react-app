@@ -1,5 +1,4 @@
 from django.urls import path
-from . import views
 from .views import (
     ScanAWS,
     scan_gcp,
@@ -25,7 +24,6 @@ from .async_views import (
     JobStatusView,
     JobHistoryView,
 )
-from .health import HealthCheckView
 
 urlpatterns = [
     # Scan Endpoints
@@ -63,14 +61,6 @@ urlpatterns = [
     path('xls/', AWSScanFindingsExcel.as_view(), name='aws-xls'),
     path('gcp-xls/', GCPScanFindingsExcel.as_view(), name='gcp-xls'),
 
-    # Health check
-    path('health/', HealthCheckView.as_view(), name='health'),
-
     # Home
     path("", home, name="home"),
-
-    path('AWS_Scan_History/', views.aws_scan_history),
-    path('GCP_Scan_History/', views.gcp_scan_history),
-    path('AWSfinding/<str:scan_id>/', views.aws_findings),
-    path('GCPfinding/<str:scan_id>/', views.gcp_findings),
 ]
