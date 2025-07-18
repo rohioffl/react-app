@@ -40,7 +40,7 @@ class ScanViewTests(TestCase):
 
         with patch("cloudscan.views.run_prowler_aws", return_value=json_path):
             resp = self.client.post(
-                "/api/prowler/scan/aws",
+                "scan/aws",
                 {
                     "accessKey": "AKIA...",
                     "secretKey": "secret",
@@ -74,7 +74,7 @@ class ScanViewTests(TestCase):
                 os.environ,
                 {"GCP_SERVICE_ACCOUNT_JSON_PATH": "/tmp/key.json"},
             ):
-                resp = self.client.post("/api/prowler/scan/gcp", {"projectId": "proj"})
+                resp = self.client.post("scan/gcp", {"projectId": "proj"})
 
         os.remove(csv_path)
 
@@ -92,7 +92,7 @@ class ScanViewTests(TestCase):
 
         with patch("cloudscan.views.run_prowler_aws", return_value=json_path) as mock_run:
             resp = self.client.post(
-                "/api/prowler/scan/aws",
+                "scan/aws",
                 {
                     "accessKey": "AKIA...",
                     "secretKey": "secret",
@@ -116,7 +116,7 @@ class ScanViewTests(TestCase):
         with patch("cloudscan.views.run_prowler_gcp", return_value=csv_path) as mock_run:
             with patch.dict(os.environ, {"GCP_SERVICE_ACCOUNT_JSON_PATH": "/tmp/key.json"}):
                 resp = self.client.post(
-                    "/api/prowler/scan/gcp",
+                    "scan/gcp",
                     {"checks": "check2", "group": "group2"},
                 )
 
@@ -137,7 +137,7 @@ class ScanViewTests(TestCase):
 
         with patch("cloudscan.views.run_prowler_gcp", return_value=csv_path) as mock_run:
             with patch.dict(os.environ, {"GCP_SERVICE_ACCOUNT_JSON_PATH": "/tmp/key.json"}):
-                resp = self.client.post("/api/prowler/scan/gcp", {"projectId": "proj-1"})
+                resp = self.client.post("scan/gcp", {"projectId": "proj-1"})
 
         os.remove(csv_path)
 
@@ -157,7 +157,7 @@ class ScanViewTests(TestCase):
                 "GCP_SERVICE_ACCOUNT_JSON_PATH": "/tmp/key.json",
                 "GCP_PROJECT_ID": "env-proj",
             }):
-                resp = self.client.post("/api/prowler/scan/gcp")
+                resp = self.client.post("scan/gcp")
 
         os.remove(csv_path)
 
@@ -182,7 +182,7 @@ class ScanViewTests(TestCase):
         with patch("cloudscan.views.run_prowler_gcp", side_effect=fake_run):
             with patch("os.remove") as mock_remove:
                 uploaded = SimpleUploadedFile("key.json", b"{}", content_type="application/json")
-                resp = self.client.post("/api/prowler/scan/gcp", {"keyFile": uploaded})
+                resp = self.client.post("scan/gcp", {"keyFile": uploaded})
 
         os.remove(csv_path)
 
@@ -200,7 +200,7 @@ class ScanViewTests(TestCase):
         with patch("cloudscan.views.run_prowler_gcp", return_value=csv_path):
             with patch.dict(os.environ, {"GCP_SERVICE_ACCOUNT_JSON_PATH": "/tmp/key.json"}):
                 with patch("os.remove") as mock_remove:
-                    resp = self.client.post("/api/prowler/scan/gcp")
+                    resp = self.client.post("scan/gcp")
 
         os.remove(csv_path)
 
@@ -211,7 +211,7 @@ class ScanViewTests(TestCase):
         """Uploading a key should return projects and a keyId."""
         uploaded = SimpleUploadedFile("key.json", b"{}", content_type="application/json")
         with patch("cloudscan.views.fetch_project_ids", return_value=["proj1", "proj2"]):
-            resp = self.client.post("/api/prowler/gcp/projects", {"keyFile": uploaded})
+            resp = self.client.post("gcp/projects", {"keyFile": uploaded})
 
         self.assertEqual(resp.status_code, 200)
         data = json.loads(resp.content)
@@ -222,7 +222,7 @@ class ScanViewTests(TestCase):
         """Even if listing projects fails, a keyId should be returned."""
         uploaded = SimpleUploadedFile("key.json", b"{}", content_type="application/json")
         with patch("cloudscan.views.fetch_project_ids", side_effect=Exception("bad")):
-            resp = self.client.post("/api/prowler/gcp/projects", {"keyFile": uploaded})
+           resp = self.client.post("gcp/projects", {"keyFile": uploaded})
 
         self.assertEqual(resp.status_code, 200)
         data = json.loads(resp.content)
@@ -233,7 +233,7 @@ class ScanViewTests(TestCase):
         """/scan/gcp should accept keyId referencing uploaded file."""
         uploaded = SimpleUploadedFile("key.json", b"{}", content_type="application/json")
         with patch("cloudscan.views.fetch_project_ids", return_value=["proj"]):
-            resp = self.client.post("/api/prowler/gcp/projects", {"keyFile": uploaded})
+            resp = self.client.post("gcp/projects", {"keyFile": uploaded})
             key_id = json.loads(resp.content)["keyId"]
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as tmp_csv:
@@ -249,7 +249,7 @@ class ScanViewTests(TestCase):
             return csv_path
 
         with patch("cloudscan.views.run_prowler_gcp", side_effect=fake_run):
-            resp = self.client.post("/api/prowler/scan/gcp", {"keyId": key_id, "projectId": "proj"})
+            resp = self.client.post("scan/gcp", {"keyId": key_id, "projectId": "proj"})
 
         os.remove(csv_path)
 
