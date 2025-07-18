@@ -1,45 +1,63 @@
-from mongoengine import (
-    Document,
-    StringField,
-    DateTimeField,
-    DictField,
-    ListField,
-    IntField,
-)
-from datetime import datetime
+# cloudscan/models.py
+from mongoengine import Document, StringField, DateTimeField, ListField, EmbeddedDocument, EmbeddedDocumentField, DictField, BooleanField, IntField
 
-class AWSScan(Document):
-    provider = StringField(default="AWS")
+class AWSSingleFinding(EmbeddedDocument):
+    Id = StringField()
+    Title = StringField()
+    Description = StringField()
+    AwsAccountId = StringField()
+    Severity = DictField()
+    Types = ListField(StringField())
+    Resources = ListField(DictField())
+    Compliance = DictField()
+    CreatedAt = StringField()
+    UpdatedAt = StringField()
+    FirstObservedAt = StringField()
+    Remediation = DictField()
+    RecordState = StringField()
+
+class AWSResult(Document):
     date = DateTimeField()
+    provider = StringField()
     accountId = StringField()
     region = StringField()
-    findings = ListField(DictField())
+    findings = ListField(EmbeddedDocumentField(AWSSingleFinding))
+    meta = {'collection': 'awsresults'}
 
-class GCPScan(Document):
-    provider = StringField(default="GCP")
+class GCPSingleFinding(EmbeddedDocument):
+    AUTH_METHOD = StringField()
+    TIMESTAMP = DateTimeField()
+    ACCOUNT_UID = StringField()
+    ACCOUNT_NAME = StringField()
+    FINDING_UID = StringField()
+    PROVIDER = StringField()
+    CHECK_ID = StringField()
+    CHECK_TITLE = StringField()
+    CHECK_TYPE = StringField()
+    STATUS = StringField()
+    STATUS_EXTENDED = StringField()
+    MUTED = BooleanField()
+    SERVICE_NAME = StringField()
+    SUBSERVICE_NAME = StringField()
+    SEVERITY = StringField()
+    RESOURCE_TYPE = StringField()
+    RESOURCE_UID = StringField()
+    RESOURCE_NAME = StringField()
+    REGION = StringField()
+    DESCRIPTION = StringField()
+    RISK = StringField()
+    RELATED_URL = StringField()
+    REMEDIATION_RECOMMENDATION_TEXT = StringField()
+    REMEDIATION_RECOMMENDATION_URL = StringField()
+    REMEDIATION_CODE_CLI = StringField()
+    COMPLIANCE = StringField()
+    NOTES = StringField()
+    PROWLER_VERSION = StringField()
+
+class GCPResult(Document):
     date = DateTimeField()
+    provider = StringField(default='GCP')
     accountId = StringField()
-    projectId = StringField()
     region = StringField()
-    findings = ListField(DictField())
-
-
-class ScanJob(Document):
-    """Track progress and status for async scans."""
-
-    scan_id = StringField(primary_key=True)
-    provider = StringField(required=True)
-    projectId = StringField()  # For GCP scans
-    status = StringField(default="queued")
-    progress = IntField(default=0)
-    result = DictField()
-    created_at = DateTimeField(default=datetime.utcnow)
-    updated_at = DateTimeField(default=datetime.utcnow)
-
-    meta = {
-        "collection": "scan_jobs",
-    }
-
-    def save(self, *args, **kwargs):
-        self.updated_at = datetime.utcnow()
-        return super().save(*args, **kwargs)
+    findings = ListField(EmbeddedDocumentField(GCPSingleFinding))
+    meta = {'collection': 'gcpresults'}
