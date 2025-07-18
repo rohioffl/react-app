@@ -49,7 +49,24 @@ const handleGcpFileChange = async (e) => {
     setGcpProjects(res.data.projects);
     setKeyId(res.data.keyId);
   } catch (err) {
-    setResponse(`❌ Error: ${err.response?.data?.error || err.message}`);
+    const errorMsg = err.response?.data?.error || err.message;
+    setResponse(`❌ Error: ${errorMsg}`);
+    if (errorMsg && errorMsg.includes('Cloud Resource Manager API')) {
+      toast.error(
+        <div>
+          Cloud Resource Manager API is not enabled for this project.{' '}
+          <a
+            href="https://console.cloud.google.com/apis/library/cloudresourcemanager.googleapis.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline"
+          >
+            Enable API
+          </a>
+        </div>,
+        { autoClose: false }
+      );
+    }
   } finally {
     setFetchingProjects(false);
   }
