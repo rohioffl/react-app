@@ -218,6 +218,17 @@ class ScanViewTests(TestCase):
         self.assertEqual(data["projects"], ["proj1", "proj2"])
         self.assertIn("keyId", data)
 
+    def test_upload_gcp_key_handles_project_list_error(self):
+        """Even if listing projects fails, a keyId should be returned."""
+        uploaded = SimpleUploadedFile("key.json", b"{}", content_type="application/json")
+        with patch("cloudscan.views.fetch_project_ids", side_effect=Exception("bad")):
+            resp = self.client.post("/api/prowler/gcp/projects", {"keyFile": uploaded})
+
+        self.assertEqual(resp.status_code, 200)
+        data = json.loads(resp.content)
+        self.assertEqual(data["projects"], [])
+        self.assertIn("keyId", data)
+
     def test_scan_gcp_with_key_id(self):
         """/scan/gcp should accept keyId referencing uploaded file."""
         uploaded = SimpleUploadedFile("key.json", b"{}", content_type="application/json")
