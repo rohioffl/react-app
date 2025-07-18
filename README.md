@@ -54,6 +54,36 @@ CloudScan is a lightweight Django REST API that wraps [Prowler](https://github.c
    python manage.py runserver 0.0.0.0:8000
    ```
 
+### MongoDB connection logging
+
+When the server starts, the `cloudscan` app attempts to connect to MongoDB in
+its `AppConfig.ready()` method. A message is printed to the console indicating
+whether the connection succeeded:
+
+```
+✅ MongoDB connection established.
+```
+
+If the connection fails you will see:
+
+```
+❌ Failed to connect to MongoDB: <error message>
+```
+
+The connection uses the `MONGODB_URI` environment variable.
+
+### Health check
+
+An optional `/health/` endpoint is provided to verify MongoDB connectivity at
+runtime:
+
+```bash
+curl http://localhost:8000/health/
+```
+
+A successful response returns `{"mongodb": "connected"}`. A `500` status
+indicates the database could not be reached.
+
 ### Running the React frontend
 
 1. Install dependencies and start the Vite dev server:
@@ -117,6 +147,52 @@ The React example in `frontend/src/example/GcpAsyncScan.jsx` demonstrates this
 flow.
 
 A successful response returns the scan ID and the number of findings. You can then query MongoDB for the stored scan results.
+
+### MongoEngine models
+
+`cloudscan/models.py` contains `mongoengine` documents similar to the schemas
+used by the original Express/Mongoose backend:
+
+```python
+from mongoengine import (
+    Document, StringField, DateTimeField, DictField,
+    ListField, IntField
+)
+from datetime import datetime
+
+class AWSScan(Document):
+    provider = StringField(default="AWS")
+    date = DateTimeField()
+    accountId = StringField()
+    region = StringField()
+    findings = ListField(DictField())
+
+
+class GCPScan(Document):
+    provider = StringField(default="GCP")
+    date = DateTimeField()
+    accountId = StringField()
+    projectId = StringField()
+    region = StringField()
+    findings = ListField(DictField())
+
+
+class ScanJob(Document):
+    scan_id = StringField(primary_key=True)
+    provider = StringField(required=True)
+    projectId = StringField()
+    status = StringField(default="queued")
+    progress = IntField(default=0)
+    result = DictField()
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+    meta = {"collection": "scan_jobs"}
+
+    def save(self, *args, **kwargs):
+        self.updated_at = datetime.utcnow()
+        return super().save(*args, **kwargs)
+```
 
 ### Persistent async workflow
 

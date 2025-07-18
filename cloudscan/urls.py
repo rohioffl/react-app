@@ -24,6 +24,7 @@ from .async_views import (
     JobStatusView,
     JobHistoryView,
 )
+from .health import HealthCheckView
 
 urlpatterns = [
     # Scan Endpoints
@@ -60,6 +61,9 @@ urlpatterns = [
     # Excel downloads
     path('xls/', AWSScanFindingsExcel.as_view(), name='aws-xls'),
     path('gcp-xls/', GCPScanFindingsExcel.as_view(), name='gcp-xls'),
+
+    # Health check
+    path('health/', HealthCheckView.as_view(), name='health'),
 
     # Home
     path("", home, name="home"),
