@@ -29,7 +29,8 @@ def fetch_project_ids(key_path):
     try:
         creds = service_account.Credentials.from_service_account_file(key_path)
         client = resourcemanager_v3.ProjectsClient(credentials=creds)
-        projects = client.list_projects()
+        # search_projects returns projects the caller has access to without requiring a parent
+        projects = client.search_projects()
         return [p.project_id for p in projects if p.state.name == "ACTIVE"]
     except Exception as e:
         raise Exception("Could not list projects with the uploaded key: " + str(e))
