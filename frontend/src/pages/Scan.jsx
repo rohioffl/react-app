@@ -50,11 +50,11 @@ const handleGcpFileChange = async (e) => {
     setKeyId(res.data.keyId);
   } catch (err) {
     const errorMsg = err.response?.data?.error || err.message;
-    setResponse(`❌ Error: ${errorMsg}`);
     if (errorMsg && errorMsg.includes('Cloud Resource Manager API')) {
+      setResponse('');
       toast.error(
         <div>
-          Cloud Resource Manager API is not enabled for this project.{' '}
+          Cloud Resource Manager API is not enabled for this project.{" "}
           <a
             href="https://console.cloud.google.com/apis/library/cloudresourcemanager.googleapis.com"
             target="_blank"
@@ -66,6 +66,8 @@ const handleGcpFileChange = async (e) => {
         </div>,
         { autoClose: false }
       );
+    } else {
+      setResponse(`❌ Error: ${errorMsg}`);
     }
   } finally {
     setFetchingProjects(false);
@@ -118,11 +120,11 @@ const handleScan = async () => {
     } catch (err) {
       setLoading(false);
       const errorMsg = err.response?.data?.error || err.message;
-      setResponse(`❌ Error: ${errorMsg}`);
       if (errorMsg && errorMsg.includes('Cloud Resource Manager API')) {
+        setResponse('');
         toast.error(
           <div>
-            Cloud Resource Manager API is not enabled for this project.{' '}
+            Cloud Resource Manager API is not enabled for this project.{" "}
             <a
               href={`https://console.cloud.google.com/apis/library/cloudresourcemanager.googleapis.com?project=${selectedProject}`}
               target="_blank"
@@ -135,6 +137,7 @@ const handleScan = async () => {
           { autoClose: false }
         );
       } else {
+        setResponse(`❌ Error: ${errorMsg}`);
         toast.error(errorMsg);
       }
     }
@@ -226,7 +229,7 @@ const handleScan = async () => {
             <input type="file" className="hidden" accept=".json" onChange={handleGcpFileChange} />
           </label>
           {fetchingProjects && <p className="text-sm text-blue-600">Loading projects...</p>}
-          {gcpProjects.length > 0 && !fetchingProjects && (
+          {gcpProjects.length > 0 && !fetchingProjects ? (
             <select
               className="w-full border border-gray-300 px-4 py-2 rounded-lg"
               value={selectedProject}
@@ -237,6 +240,16 @@ const handleScan = async () => {
                 <option key={p} value={p}>{p}</option>
               ))}
             </select>
+          ) : (
+            keyId && !fetchingProjects && (
+              <input
+                type="text"
+                className="w-full border border-gray-300 px-4 py-2 rounded-lg"
+                placeholder="Enter GCP project ID"
+                value={selectedProject}
+                onChange={(e) => setSelectedProject(e.target.value)}
+              />
+            )
           )}
         </div>
       )}

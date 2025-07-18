@@ -123,9 +123,11 @@ def upload_gcp_key(request):
 
     try:
         projects = fetch_project_ids(key_path)
-    except Exception as e:
-        os.remove(key_path)
-        return JsonResponse({"error": str(e)}, status=500)
+    except Exception:
+        # If the Cloud Resource Manager API is disabled or the key lacks
+        # permissions, listing projects will fail. Still return a keyId so the
+        # user can manually provide a project ID for scanning.
+        projects = []
 
     key_id = str(uuid4())
     TEMP_KEYS[key_id] = key_path
