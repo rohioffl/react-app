@@ -2,6 +2,8 @@ import { useState } from 'react'
 import "./index.css"
 import "./App.css"
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Scan from './pages/Scan';
 import ScanList from './pages/ScanList';
 import Nav from './component/Nav';
@@ -13,6 +15,7 @@ import GCPFindingDetails from './pages/GCPFindingDetails';
 function App() {
   return (
 <BrowserRouter>
+  <ToastContainer position="top-center" />
   <div className="flex h-screen w-screen">
 
     <div className="w-64 bg-gray-800 text-white">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Cloud, ShieldCheck, UploadCloud } from 'lucide-react';
+import { toast } from 'react-toastify';
 import api from '../api';
 const Scan = () => {
   const [provider, setProvider] = useState('');
@@ -99,7 +100,26 @@ const handleScan = async () => {
       }
     } catch (err) {
       setLoading(false);
-      setResponse(`❌ Error: ${err.response?.data?.error || err.message}`);
+      const errorMsg = err.response?.data?.error || err.message;
+      setResponse(`❌ Error: ${errorMsg}`);
+      if (errorMsg && errorMsg.includes('Cloud Resource Manager API')) {
+        toast.error(
+          <div>
+            Cloud Resource Manager API is not enabled for this project.{' '}
+            <a
+              href={`https://console.cloud.google.com/apis/library/cloudresourcemanager.googleapis.com?project=${selectedProject}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              Enable API
+            </a>
+          </div>,
+          { autoClose: false }
+        );
+      } else {
+        toast.error(errorMsg);
+      }
     }
   };
 
