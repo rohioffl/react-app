@@ -28,10 +28,12 @@ def fetch_project_ids(key_path):
 
         creds = service_account.Credentials.from_service_account_file(key_path)
         client = resourcemanager_v3.ProjectsClient(credentials=creds)
-        projects = client.list_projects()
+        # Try both ways:
+        projects = client.list_projects()  # Try with NO parent
+        # projects = client.list_projects(parent="organizations/XYZ")  # Only if you know the org ID and format
         return [p.project_id for p in projects if p.state.name == "ACTIVE"]
     except Exception as e:
-        # No gcloud fallback! Instead, raise a clear error for the frontend/UI.
+        print(f"DEBUG ERROR: {e}")
         raise Exception(
             "Could not list projects with the uploaded key. "
             "Ensure that:\n"
