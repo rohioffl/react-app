@@ -118,6 +118,21 @@ flow.
 
 A successful response returns the scan ID and the number of findings. You can then query MongoDB for the stored scan results.
 
+### Persistent async workflow
+
+The endpoints above store progress in memory. The project also includes
+`cloudscan/async_views.py` which demonstrates how to persist scan jobs in
+MongoDB so progress survives restarts:
+
+1. Upload a key via `POST /api/prowler/async/projects`.
+2. Start a scan with `POST /api/prowler/scan/async/gcp/db/` using the returned
+   `keyId` and `projectId`.
+3. Poll `/api/prowler/scan/status/db/<scan_id>/` until `progress` reaches 100.
+4. Query history from `/api/prowler/scanlist/db/`.
+
+Each scan job is stored in the `scan_jobs` collection with its status, progress
+and result.
+
 ## Testing
 
 Ensure the dependencies from `requirements.txt` are installed before running the tests:
