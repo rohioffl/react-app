@@ -23,28 +23,17 @@ TEMP_KEYS = {}
 
 def fetch_project_ids(key_path):
     """Return a list of accessible GCP project IDs using the given service account."""
-    try:
-        from google.cloud import resourcemanager_v3
-        from google.oauth2 import service_account
+    from google.cloud import resourcemanager_v3
+    from google.oauth2 import service_account
 
+    try:
         creds = service_account.Credentials.from_service_account_file(key_path)
         client = resourcemanager_v3.ProjectsClient(credentials=creds)
         projects = client.list_projects()
         return [p.project_id for p in projects if p.state.name == "ACTIVE"]
-    except Exception:
-        # Fallback to gcloud CLI if library fails
-        env = os.environ.copy()
-        env["GOOGLE_APPLICATION_CREDENTIALS"] = key_path
-        result = subprocess.run(
-            ["gcloud", "projects", "list", "--format=json"],
-            capture_output=True,
-            text=True,
-            env=env,
-        )
-        if result.returncode != 0:
-            raise Exception(result.stderr.strip())
-        data = json.loads(result.stdout)
-        return [p.get("projectId") for p in data]
+    except Exception as e:
+        raise Exception("Could not list projects with the uploaded key: " + str(e))
+
 
 
 class ScanAWS(APIView):
