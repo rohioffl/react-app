@@ -226,7 +226,7 @@ const handleScan = async () => {
             <input type="file" className="hidden" accept=".json" onChange={handleGcpFileChange} />
           </label>
           {fetchingProjects && <p className="text-sm text-blue-600">Loading projects...</p>}
-          {gcpProjects.length > 0 && !fetchingProjects ? (
+          {gcpProjects.length > 0 && !fetchingProjects && (
             <select
               className="w-full border border-gray-300 px-4 py-2 rounded-lg"
               value={selectedProject}
@@ -237,16 +237,17 @@ const handleScan = async () => {
                 <option key={p} value={p}>{p}</option>
               ))}
             </select>
-          ) : (
-            keyId && !fetchingProjects && (
-              <input
-                type="text"
-                className="w-full border border-gray-300 px-4 py-2 rounded-lg"
-                placeholder="Enter GCP project ID"
-                value={selectedProject}
-                onChange={(e) => setSelectedProject(e.target.value)}
-              />
-            )
+          )}
+
+          {/* If projects are not available but keyId is present, show fallback input */}
+          {gcpProjects.length === 0 && keyId && !fetchingProjects && (
+            <input
+              type="text"
+              className="w-full border border-gray-300 px-4 py-2 rounded-lg"
+              placeholder="Enter GCP project ID"
+              value={selectedProject}
+              onChange={(e) => setSelectedProject(e.target.value)}
+            />
           )}
         </div>
       )}
