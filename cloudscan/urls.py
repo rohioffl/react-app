@@ -1,4 +1,5 @@
 from django.urls import path
+from . import views
 from .views import (
     ScanAWS,
     scan_gcp,
@@ -67,4 +68,9 @@ urlpatterns = [
 
     # Home
     path("", home, name="home"),
+
+    path('AWS_Scan_History/', views.aws_scan_history),
+    path('GCP_Scan_History/', views.gcp_scan_history),
+    path('AWSfinding/<str:scan_id>/', views.aws_findings),
+    path('GCPfinding/<str:scan_id>/', views.gcp_findings),
 ]
