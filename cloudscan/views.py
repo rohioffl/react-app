@@ -20,7 +20,6 @@ SCAN_JOBS = {}
 # Temporary storage mapping key IDs to uploaded service account files
 TEMP_KEYS = {}
 
-
 def fetch_project_ids(key_path):
     """Return a list of accessible GCP project IDs using the given service account."""
     try:
@@ -31,20 +30,16 @@ def fetch_project_ids(key_path):
         client = resourcemanager_v3.ProjectsClient(credentials=creds)
         projects = client.list_projects()
         return [p.project_id for p in projects if p.state.name == "ACTIVE"]
-    except Exception:
-        # Fallback to gcloud CLI if library fails
-        env = os.environ.copy()
-        env["GOOGLE_APPLICATION_CREDENTIALS"] = key_path
-        result = subprocess.run(
-            ["gcloud", "projects", "list", "--format=json"],
-            capture_output=True,
-            text=True,
-            env=env,
+    except Exception as e:
+        # No gcloud fallback! Instead, raise a clear error for the frontend/UI.
+        raise Exception(
+            "Could not list projects with the uploaded key. "
+            "Ensure that:\n"
+            " - The service account has 'roles/browser' or 'roles/viewer' at the org or folder level\n"
+            " - Cloud Resource Manager API is enabled for all relevant projects\n"
+            f"Details: {e}"
         )
-        if result.returncode != 0:
-            raise Exception(result.stderr.strip())
-        data = json.loads(result.stdout)
-        return [p.get("projectId") for p in data]
+
 
 
 class ScanAWS(APIView):
