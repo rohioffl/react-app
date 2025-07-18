@@ -1,5 +1,16 @@
 # cloudscan/models.py
-from mongoengine import Document, StringField, DateTimeField, ListField, EmbeddedDocument, EmbeddedDocumentField, DictField, BooleanField, IntField
+from mongoengine import (
+    Document,
+    StringField,
+    DateTimeField,
+    ListField,
+    EmbeddedDocument,
+    EmbeddedDocumentField,
+    DictField,
+    BooleanField,
+    IntField,
+)
+from datetime import datetime
 
 class AWSSingleFinding(EmbeddedDocument):
     Id = StringField()
@@ -61,3 +72,43 @@ class GCPResult(Document):
     region = StringField()
     findings = ListField(EmbeddedDocumentField(GCPSingleFinding))
     meta = {'collection': 'gcpresults'}
+
+
+class AWSScan(Document):
+    """Simplified document storing raw AWS scan findings."""
+
+    provider = StringField(default="AWS")
+    date = DateTimeField()
+    accountId = StringField()
+    region = StringField()
+    findings = ListField(DictField())
+
+
+class GCPScan(Document):
+    """Simplified document storing raw GCP scan findings."""
+
+    provider = StringField(default="GCP")
+    date = DateTimeField()
+    accountId = StringField()
+    projectId = StringField()
+    region = StringField()
+    findings = ListField(DictField())
+
+
+class ScanJob(Document):
+    """Track async scan progress for the example async workflow."""
+
+    scan_id = StringField(primary_key=True)
+    provider = StringField(required=True)
+    projectId = StringField()
+    status = StringField(default="queued")
+    progress = IntField(default=0)
+    result = DictField()
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+
+    meta = {"collection": "scan_jobs"}
+
+    def save(self, *args, **kwargs):
+        self.updated_at = datetime.utcnow()
+        return super().save(*args, **kwargs)
